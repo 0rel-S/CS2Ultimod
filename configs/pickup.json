@@ -1,0 +1,6 @@
+{
+  "FaceitApiKey": "",
+  "MapPool": ["de_mirage","de_inferno","de_nuke","de_anubis","de_ancient","de_dust2","de_train"],
+  "ReadyTimeout": 300,
+  "PauseLimit": 1
+}

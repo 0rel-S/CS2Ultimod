@@ -1,0 +1,40 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Local config / secrets
+configs/local.*.json
+configs/*.local.json
+.env
+.env.*
+!.env.example
+
+# Local DB
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python cache (deploy.py)
+__pycache__/
+*.pyc
+
+# Deploy secrets (dathost API creds)
+tools/secrets.local.py
+
+# Claude
+.claude/
+
+# Reference repos (study only, not part of build)
+references/

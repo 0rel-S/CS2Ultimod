@@ -1,0 +1,37 @@
+{
+  "Scenarios": [
+    {
+      "Name": "Upper Execute",
+      "Description": "Execute the {{site}} site!",
+      "Bombsite": 0,
+      "DisableOtherBombsite": true,
+      "RoundTime": 90,
+      "MinPlayerCount": 2,
+      "SpawnIds": [1, 2, 3, 4],
+      "GrenadeIds": [1, 2]
+    },
+    {
+      "Name": "Lower Execute",
+      "Description": "Execute the {{site}} site!",
+      "Bombsite": 1,
+      "DisableOtherBombsite": true,
+      "RoundTime": 90,
+      "MinPlayerCount": 2,
+      "SpawnIds": [1, 2, 5, 6],
+      "GrenadeIds": [3]
+    }
+  ],
+  "Spawns": [
+    {"Id": 1, "Name": "CT outer hold", "Position": "700.0 1200.0 -400.0", "Angle": "0.0 -90.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 2, "Name": "CT main hold", "Position": "550.0 900.0 -400.0", "Angle": "0.0 180.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 3, "Name": "T main entry", "Position": "-1000.0 1000.0 -400.0", "Angle": "0.0 0.0 0.0", "Team": 2, "Type": 0},
+    {"Id": 4, "Name": "T ramp entry", "Position": "-800.0 700.0 -400.0", "Angle": "0.0 30.0 0.0", "Team": 2, "Type": 0},
+    {"Id": 5, "Name": "CT lower hold", "Position": "600.0 800.0 -640.0", "Angle": "0.0 180.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 6, "Name": "T lower entry", "Position": "-900.0 800.0 -640.0", "Angle": "0.0 10.0 0.0", "Team": 2, "Type": 0}
+  ],
+  "Grenades": [
+    {"Id": 1, "Name": "Upper site smoke", "Type": 2, "Position": "-700.0 950.0 -380.0", "Angle": "0.0 0.0 0.0", "Velocity": "500.0 -80.0 540.0", "Team": 2, "Delay": 0.0},
+    {"Id": 2, "Name": "Upper site flash", "Type": 0, "Position": "-600.0 700.0 -380.0", "Angle": "0.0 0.0 0.0", "Velocity": "380.0 150.0 600.0", "Team": 2, "Delay": 0.4},
+    {"Id": 3, "Name": "Lower site smoke", "Type": 2, "Position": "-700.0 780.0 -620.0", "Angle": "0.0 0.0 0.0", "Velocity": "460.0 -60.0 500.0", "Team": 2, "Delay": 0.0}
+  ]
+}

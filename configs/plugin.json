@@ -1,0 +1,36 @@
+{
+  "DefaultMode": "Retake",
+  "Language": "fr",
+  "DatabasePath": "data/plugin.db",
+  "MapPools": {
+    "RetakeExecuteMixte": [
+      "de_mirage",
+      "de_inferno",
+      "de_nuke",
+      "de_anubis",
+      "de_ancient",
+      "de_vertigo",
+      "de_dust2",
+      "de_train",
+      "de_overpass"
+    ],
+    "Pickup": [
+      "de_mirage",
+      "de_inferno",
+      "de_nuke",
+      "de_anubis",
+      "de_ancient",
+      "de_dust2",
+      "de_train"
+    ],
+    "Arena": [
+      "Redline Multi Arena=3139172262",
+      "am_blackline=3172439876",
+      "am_minecraft=3197575080"
+    ]
+  },
+  "Votes": {
+    "MajorityThreshold": 0.51,
+    "CooldownSec": 600
+  }
+}

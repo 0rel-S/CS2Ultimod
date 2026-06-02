@@ -1,0 +1,39 @@
+{
+  "Scenarios": [
+    {
+      "Name": "A Execute",
+      "Description": "Execute the {{site}} site!",
+      "Bombsite": 0,
+      "DisableOtherBombsite": true,
+      "RoundTime": 90,
+      "MinPlayerCount": 2,
+      "SpawnIds": [1, 2, 3, 4, 5],
+      "GrenadeIds": [1, 2]
+    },
+    {
+      "Name": "B Execute",
+      "Description": "Execute the {{site}} site!",
+      "Bombsite": 1,
+      "DisableOtherBombsite": true,
+      "RoundTime": 90,
+      "MinPlayerCount": 2,
+      "SpawnIds": [1, 2, 6, 7, 8],
+      "GrenadeIds": [3]
+    }
+  ],
+  "Spawns": [
+    {"Id": 1, "Name": "CT Ruins hold", "Position": "490.0 120.0 -95.0", "Angle": "0.0 -180.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 2, "Name": "CT A site hold", "Position": "700.0 -450.0 -95.0", "Angle": "0.0 -90.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 3, "Name": "T A main", "Position": "-1400.0 350.0 -95.0", "Angle": "0.0 90.0 0.0", "Team": 2, "Type": 0},
+    {"Id": 4, "Name": "T A short", "Position": "-1100.0 -300.0 -95.0", "Angle": "0.0 45.0 0.0", "Team": 2, "Type": 0},
+    {"Id": 5, "Name": "T Mid push", "Position": "-900.0 50.0 -95.0", "Angle": "0.0 60.0 0.0", "Team": 2, "Type": 0},
+    {"Id": 6, "Name": "CT B hold", "Position": "300.0 800.0 -95.0", "Angle": "0.0 160.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 7, "Name": "T B main", "Position": "-1300.0 900.0 -95.0", "Angle": "0.0 -30.0 0.0", "Team": 2, "Type": 0},
+    {"Id": 8, "Name": "T B push mid", "Position": "-800.0 700.0 -95.0", "Angle": "0.0 20.0 0.0", "Team": 2, "Type": 0}
+  ],
+  "Grenades": [
+    {"Id": 1, "Name": "A site smoke", "Type": 2, "Position": "-1200.0 300.0 -50.0", "Angle": "0.0 0.0 0.0", "Velocity": "450.0 -100.0 520.0", "Team": 2, "Delay": 0.0},
+    {"Id": 2, "Name": "A site flash", "Type": 0, "Position": "-1000.0 -250.0 -50.0", "Angle": "0.0 0.0 0.0", "Velocity": "300.0 200.0 600.0", "Team": 2, "Delay": 0.5},
+    {"Id": 3, "Name": "B site smoke", "Type": 2, "Position": "-1100.0 850.0 -50.0", "Angle": "0.0 0.0 0.0", "Velocity": "380.0 -50.0 480.0", "Team": 2, "Delay": 0.0}
+  ]
+}

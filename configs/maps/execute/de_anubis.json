@@ -1,0 +1,37 @@
+{
+  "Scenarios": [
+    {
+      "Name": "A Execute",
+      "Description": "Execute the {{site}} site!",
+      "Bombsite": 0,
+      "DisableOtherBombsite": true,
+      "RoundTime": 90,
+      "MinPlayerCount": 2,
+      "SpawnIds": [1, 2, 3, 4],
+      "GrenadeIds": [1, 2]
+    },
+    {
+      "Name": "B Execute",
+      "Description": "Execute the {{site}} site!",
+      "Bombsite": 1,
+      "DisableOtherBombsite": true,
+      "RoundTime": 90,
+      "MinPlayerCount": 2,
+      "SpawnIds": [1, 2, 5, 6],
+      "GrenadeIds": [3]
+    }
+  ],
+  "Spawns": [
+    {"Id": 1, "Name": "CT A hold", "Position": "800.0 -200.0 0.0", "Angle": "0.0 180.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 2, "Name": "CT mid hold", "Position": "600.0 200.0 0.0", "Angle": "0.0 -160.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 3, "Name": "T main", "Position": "-1500.0 -100.0 0.0", "Angle": "0.0 20.0 0.0", "Team": 2, "Type": 0},
+    {"Id": 4, "Name": "T canal", "Position": "-1200.0 -400.0 0.0", "Angle": "0.0 45.0 0.0", "Team": 2, "Type": 0},
+    {"Id": 5, "Name": "CT B hold", "Position": "750.0 600.0 0.0", "Angle": "0.0 -120.0 0.0", "Team": 3, "Type": 0},
+    {"Id": 6, "Name": "T B rush", "Position": "-1400.0 700.0 0.0", "Angle": "0.0 -30.0 0.0", "Team": 2, "Type": 0}
+  ],
+  "Grenades": [
+    {"Id": 1, "Name": "A smoke CT cross", "Type": 2, "Position": "-1300.0 -50.0 30.0", "Angle": "0.0 0.0 0.0", "Velocity": "480.0 80.0 510.0", "Team": 2, "Delay": 0.0},
+    {"Id": 2, "Name": "A site flash", "Type": 0, "Position": "-1100.0 -300.0 30.0", "Angle": "0.0 0.0 0.0", "Velocity": "350.0 180.0 580.0", "Team": 2, "Delay": 0.3},
+    {"Id": 3, "Name": "B smoke CT", "Type": 2, "Position": "-1200.0 650.0 30.0", "Angle": "0.0 0.0 0.0", "Velocity": "400.0 -100.0 490.0", "Team": 2, "Delay": 0.0}
+  ]
+}

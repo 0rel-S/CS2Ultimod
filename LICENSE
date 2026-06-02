@@ -1,21 +1,23 @@
-MIT License
+Copyright (c) 2026 Aurel (0rel-S). All rights reserved.
 
-Copyright (c) 2026 Aurel (0rel-S)
+This source code is made publicly visible for reference and for collaboration
+with invited contributors. It is NOT released under an open-source license.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+You may not use, copy, modify, redistribute, sublicense, or sell this project,
+in whole or in part, without the prior written permission of the copyright
+holder. Submitting a contribution (e.g. a pull request) does not grant you any
+additional rights to the project.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Third-party components
+----------------------
+This project incorporates and adapts source code from the following projects,
+each originally licensed under the MIT License. Those portions remain governed
+by their original MIT licenses, and their copyright and permission notices are
+retained. Nothing above limits the rights granted by those upstream licenses
+with respect to their respective original code:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  - B3none/cs2-retakes
+  - B3none/cs2-instadefuse
+  - bazookaCodes/cs2-executes-plugin
+  - yonilerner/cs2-retakes-allocator
+  - zwolof/cs2-executes (map configs)

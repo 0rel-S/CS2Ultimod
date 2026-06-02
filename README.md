@@ -35,9 +35,9 @@ Les identifiants de serveur (FTP, RCON, API) ne sont jamais commités : ils vont
 
 ## Licence
 
-MIT (à confirmer en fin de V1).
+Tous droits réservés. Code visible publiquement pour référence et contribution, mais pas open-source : pas de réutilisation, copie, redistribution ou revente sans accord écrit. Voir [LICENSE](./LICENSE).
 
-Sources externes intégrées (toutes MIT) :
+Sources externes intégrées (sous MIT, leurs portions restent MIT) :
 - [B3none/cs2-retakes](https://github.com/B3none/cs2-retakes)
 - [B3none/cs2-instadefuse](https://github.com/B3none/cs2-instadefuse)
 - [bazookaCodes/cs2-executes-plugin](https://github.com/bazookaCodes/cs2-executes-plugin)

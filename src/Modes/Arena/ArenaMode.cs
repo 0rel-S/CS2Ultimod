@@ -225,11 +225,18 @@ public sealed class ArenaMode : IGameMode
     private void MaybeEndRound()
     {
         if (!_seeded || _ending) return;
-        var active = _arenas.Where(a => a.HasRealPlayers).ToList();
-        if (active.Count == 0 || active.Any(a => !a.HasFinished)) return;
 
         var rules = GetGameRules();
         if (rules == null) return;
+        // Ne jamais terminer pendant le gel/warmup : à cet instant les pawns viennent de
+        // (re)spawn et certains ne sont pas encore "alive", donc HasFinished peut être vrai
+        // à tort. Terminer ici relancerait un round → nouveau freezetime → boucle (joueurs
+        // figés en permanence). Les morts ne surviennent qu'après le gel : la terminaison
+        // légitime (sur kill) n'est donc jamais bloquée.
+        if (rules.FreezePeriod || rules.WarmupPeriod) return;
+
+        var active = _arenas.Where(a => a.HasRealPlayers).ToList();
+        if (active.Count == 0 || active.Any(a => !a.HasFinished)) return;
 
         // Raison cosmétique (scoreboard) : l'équipe avec le plus de survivants.
         var tAlive = PlayerExt.AllAlive().Count(p => p.Team == CsTeam.Terrorist);

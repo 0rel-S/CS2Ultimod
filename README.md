@@ -33,9 +33,7 @@ Les contributions sont bienvenues. Voir [CONTRIBUTING.md](./CONTRIBUTING.md) pou
 
 Les identifiants de serveur (FTP, RCON, API) ne sont jamais commités : ils vont dans un fichier `.env` local, modelé sur [.env.example](./.env.example).
 
-## Licence
-
-Tous droits réservés. Code visible publiquement pour référence et contribution, mais pas open-source : pas de réutilisation, copie, redistribution ou revente sans accord écrit. Voir [LICENSE](./LICENSE).
+## Crédits
 
 Sources externes intégrées (sous MIT, leurs portions restent MIT) :
 - [B3none/cs2-retakes](https://github.com/B3none/cs2-retakes)

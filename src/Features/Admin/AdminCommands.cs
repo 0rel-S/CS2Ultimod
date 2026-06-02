@@ -20,6 +20,9 @@ internal static class AdminCommands
     internal static readonly HashSet<ulong> GaggedPlayers = [];
     internal static readonly HashSet<ulong> MutedPlayers = [];
 
+    // SteamID du propriétaire du serveur — ne peut jamais être renommé via !rename.
+    private const ulong OwnerSteamId = 76561198007698872;
+
     internal static void RefreshCommState(IDatabase db)
     {
         _ = Task.Run(async () =>
@@ -360,15 +363,28 @@ internal static class AdminCommands
         var targets = PlayerExt.Resolve(args[0], caller);
         if (targets.Count == 0) { Chat.TellError(caller, "Aucun joueur trouvé."); return; }
 
-        var newName = string.Join(" ", args.Skip(1));
-
-        foreach (var t in targets)
+        // !rename ne vise qu'un seul joueur. Un nom partiel peut matcher plusieurs
+        // personnes (pseudos identiques notamment) : on refuse plutôt que de tous
+        // les renommer d'un coup.
+        if (targets.Count > 1)
         {
-            var oldName = t.PlayerName;
-            t.PlayerName = newName;
-            Utilities.SetStateChanged(t, "CBasePlayerController", "m_iszPlayerName");
-            Chat.Broadcast($"{AdminName(caller)} a renommé {oldName} en {newName}.");
+            Chat.TellError(caller, $"{targets.Count} joueurs correspondent à « {args[0]} ». Précisez une cible unique.");
+            return;
         }
+
+        var target = targets[0];
+
+        if (target.SteamID == OwnerSteamId)
+        {
+            Chat.TellError(caller, "Ce joueur ne peut pas être renommé.");
+            return;
+        }
+
+        var newName = string.Join(" ", args.Skip(1));
+        var oldName = target.PlayerName;
+        target.PlayerName = newName;
+        Utilities.SetStateChanged(target, "CBasePlayerController", "m_iszPlayerName");
+        Chat.Broadcast($"{AdminName(caller)} a renommé {oldName} en {newName}.");
     }
 
     public static void Who(CCSPlayerController caller, string[] args)

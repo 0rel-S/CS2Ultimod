@@ -219,10 +219,18 @@ public sealed class WeaponAllocator
     // Le tirage effectif est différé jusqu'à la 1ère allocation du round suivant.
     public void AdvanceRound() => _roundStamp++;
 
-    // Tire 1 carrier au hasard par équipe parmi les opt-in présents dans l'équipe au
-    // round courant. Idempotent : ne tire qu'une fois par round (gardé par _carriersStamp).
-    // À appeler uniquement sur le main thread. Si personne n'a opt-in dans une équipe,
-    // le carrier reste null → aucun AWP distribué de ce côté.
+    // Probabilité qu'une AWP soit réellement tirée ce round, par équipe. C'est ce qui
+    // évite "une AWP à tous les rounds" : même avec des opt-in, le tirage peut ne donner
+    // personne. Serveur rempli (>5 joueurs connectés) → plus permissif ; serveur calme
+    // (≤5) → AWP plus rare pour ne pas écraser un petit match.
+    private const double AwpChanceBig   = 0.55;
+    private const double AwpChanceSmall = 0.30;
+    private const int    AwpBigServerThreshold = 5;
+
+    // Tire au plus 1 carrier par équipe parmi les opt-in présents dans l'équipe au round
+    // courant, sous réserve du jet de probabilité (AwpChance*). Idempotent : ne tire qu'une
+    // fois par round (gardé par _carriersStamp). À appeler uniquement sur le main thread.
+    // Si personne n'a opt-in OU si le jet échoue, le carrier reste null → pas d'AWP de ce côté.
     private void EnsureCarriersForCurrentRound()
     {
         if (_carriersStamp == _roundStamp) return;
@@ -233,19 +241,24 @@ public sealed class WeaponAllocator
 
         var poolT  = new List<ulong>();
         var poolCT = new List<ulong>();
+        var humans = 0;
         foreach (var p in Utilities.GetPlayers())
         {
-            if (!p.IsValid || p.IsBot || !want.Contains(p.SteamID)) continue;
+            if (!p.IsValid || p.IsBot) continue;
+            humans++;
+            if (!want.Contains(p.SteamID)) continue;
             if (p.Team == CsTeam.Terrorist) poolT.Add(p.SteamID);
             else if (p.Team == CsTeam.CounterTerrorist) poolCT.Add(p.SteamID);
         }
 
-        _awpCarrierT  = poolT .Count > 0 ? poolT [_random.Next(poolT .Count)] : null;
-        _awpCarrierCT = poolCT.Count > 0 ? poolCT[_random.Next(poolCT.Count)] : null;
+        var chance = humans > AwpBigServerThreshold ? AwpChanceBig : AwpChanceSmall;
+
+        _awpCarrierT  = poolT .Count > 0 && _random.NextDouble() < chance ? poolT [_random.Next(poolT .Count)] : null;
+        _awpCarrierCT = poolCT.Count > 0 && _random.NextDouble() < chance ? poolCT[_random.Next(poolCT.Count)] : null;
 
         CS2UltimodPlugin.Log?.LogInformation(
-            "[AWP] Carriers stamp={Stamp}: poolT=[{PoolT}] poolCT=[{PoolCT}] → carrierT={CarrierT} carrierCT={CarrierCT}",
-            _roundStamp, string.Join(",", poolT), string.Join(",", poolCT), _awpCarrierT, _awpCarrierCT);
+            "[AWP] Carriers stamp={Stamp} humans={Humans} chance={Chance}: poolT=[{PoolT}] poolCT=[{PoolCT}] → carrierT={CarrierT} carrierCT={CarrierCT}",
+            _roundStamp, humans, chance, string.Join(",", poolT), string.Join(",", poolCT), _awpCarrierT, _awpCarrierCT);
     }
 
     public void ResetAwpCarriers()

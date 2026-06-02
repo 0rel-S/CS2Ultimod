@@ -25,6 +25,7 @@ public enum HeroEffect
     Hypnose,        // give 1 décoy au spawn ; au lancé, freeze les ennemis Param secondes
     Invisible,      // pawn model alpha 0 (arme tenue reste visible) — hitbox conservée
     Spy,            // strip armes + nades, knife only, scale 70, speed +100
+    Bunnyhop,       // auto-bhop : re-saute tant que le joueur tient espace (mobilité, pas de param)
 }
 
 public sealed record Hero(string Id, string Name, string Description, int Tier, HeroEffect Effect, int Param = 0);
@@ -71,6 +72,7 @@ public static class HeroCatalog
         new("hypnose",   "Hypnose",    "décoy → freeze ennemis 3s", 2, HeroEffect.Hypnose, 3),
         new("invisible", "Invisible",  "modèle invisible (arme visible)", 2, HeroEffect.Invisible, 0),
         new("spy",       "Spy",        "couteau only, hitbox 0.5×, speed ×2", 2, HeroEffect.Spy, 0),
+        new("kangourou", "Kangourou",  "auto-bunnyhop (saute en boucle)", 2, HeroEffect.Bunnyhop, 0),
     ];
 
     public static Hero[] OfTier(int tier) => All.Where(h => h.Tier == tier).ToArray();

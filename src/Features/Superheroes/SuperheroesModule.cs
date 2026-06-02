@@ -104,6 +104,11 @@ public static class SuperheroesModule
         // pour les héros speed qui sinon perdent leur buff en jump).
         _freezeTimer = new CounterStrikeSharp.API.Modules.Timers.Timer(0.05f, FastTick, TimerFlags.REPEAT);
 
+        // Bunnyhop : auto-jump par tick. Contrairement aux autres effets persistants, il
+        // DOIT tourner à chaque tick (et non au FastTick 0.05s ≈ 3 ticks) pour attraper le
+        // tick exact d'atterrissage et enchaîner les sauts sans perte de vitesse.
+        CS2UltimodPlugin.Instance.RegisterListener<Listeners.OnTick>(BhopTick);
+
         // Xray (voir à travers les murs) : système event-driven séparé,
         // basé sur prop_dynamic clones + CheckTransmit per-viewer.
         XrayGlow.Init();
@@ -472,6 +477,71 @@ public static class SuperheroesModule
             // VelocityModifier décline et est reset par l'engine sur certains events
             // (notamment jump). Réécriture à 0.05s = buff perçu même en l'air.
             pawn.VelocityModifier = mul.Value;
+        }
+    }
+
+    // sv_jump_impulse par défaut de CS2. On réécrit la vélocité Z à fond à chaque
+    // atterrissage : saut pleine hauteur ET bypass de la pénalité de stamina (qui sinon
+    // raboterait la hauteur des sauts enchaînés). m_flStamina est read-only côté CSSharp,
+    // mais forcer la vélocité rend ce reset inutile.
+    private const float BhopJumpImpulse = 301.993f;
+    // Plancher de vitesse horizontale : on ne retombe jamais sous la vitesse de course
+    // (reproduit sv_enablebunnyhopping = pas de ralentissement à l'atterrissage).
+    private const float BhopBaseSpeed = 250f;
+    // Plafond de vitesse horizontale (≈ 2× course) : fun mais contrôlable dans les couloirs CS.
+    private const float BhopMaxSpeed = 520f;
+    // Gain de vitesse par saut tant que le joueur tient une direction (reproduit l'air-accel).
+    private const float BhopAccelPerHop = 25f;
+
+    // Auto-bunnyhop « grand public » : tenir ESPACE + AVANCER suffit, sans skill d'air-strafe.
+    // CS2 vanilla a 3 freins qu'on lève par joueur : (1) il faut relâcher/re-presser saut entre
+    // deux sauts → on force la vélocité ; (2) un cap ralentit à l'atterrissage → on préserve la
+    // vitesse horizontale (= sv_enablebunnyhopping) ; (3) l'accélération en l'air est bridée et
+    // exige de strafer → à chaque atterrissage on ré-oriente la vélocité vers la direction
+    // regardée/voulue et on l'augmente d'un cran, plafonnée. Le joueur dirige donc à la souris
+    // en tenant juste espace + Z, et prend de la vitesse jusqu'au plafond. On n'agit qu'au sol
+    // pendant un saut tenu ; en l'air la physique native porte la vélocité préservée.
+    private static void BhopTick()
+    {
+        if (_activeHero.Count == 0 || !IsModeActive()) return;
+        foreach (var (sid, hero) in _activeHero)
+        {
+            if (hero.Effect != HeroEffect.Bunnyhop) continue;
+            var p = PlayerExt.FindBySteamId(sid);
+            if (p is not { IsValid: true, PawnIsAlive: true }) continue;
+            if ((p.Buttons & PlayerButtons.Jump) == 0) continue;       // n'agit que si espace tenu
+            var pawn = p.PlayerPawn.Value;
+            if (pawn == null) continue;
+            if (!((PlayerFlags)pawn.Flags).HasFlag(PlayerFlags.FL_ONGROUND)) continue;  // que au sol
+
+            var vel = pawn.AbsVelocity;
+            double speed = Math.Sqrt(vel.X * vel.X + vel.Y * vel.Y);
+
+            // Direction voulue (wishdir) = combinaison regard (yaw) + touches de déplacement.
+            // Convention Source (pitch/roll ignorés) : forward=(cos,sin), right=(sin,-cos).
+            double yaw = pawn.EyeAngles.Y * Math.PI / 180.0;
+            double fx = Math.Cos(yaw), fy = Math.Sin(yaw);
+            double rx = Math.Sin(yaw), ry = -Math.Cos(yaw);
+            var btn = p.Buttons;
+            double fmove = ((btn & PlayerButtons.Forward) != 0 ? 1 : 0) - ((btn & PlayerButtons.Back) != 0 ? 1 : 0);
+            double smove = ((btn & PlayerButtons.Moveright) != 0 ? 1 : 0) - ((btn & PlayerButtons.Moveleft) != 0 ? 1 : 0);
+            double wx = fx * fmove + rx * smove;
+            double wy = fy * fmove + ry * smove;
+            double wlen = Math.Sqrt(wx * wx + wy * wy);
+
+            double dirX, dirY;
+            bool steering = wlen > 0.01;
+            if (steering) { dirX = wx / wlen; dirY = wy / wlen; }      // dirige vers la touche tenue
+            else if (speed > 1) { dirX = vel.X / speed; dirY = vel.Y / speed; }  // aucune touche → garde le cap
+            else { pawn.AbsVelocity.Z = BhopJumpImpulse; continue; }   // immobile → saute sur place
+
+            double target = Math.Max(speed, BhopBaseSpeed);
+            if (steering) target += BhopAccelPerHop;                   // accélère seulement si on pousse une direction
+            target = Math.Min(target, BhopMaxSpeed);
+
+            vel.X = (float)(dirX * target);
+            vel.Y = (float)(dirY * target);
+            vel.Z = BhopJumpImpulse;
         }
     }
 

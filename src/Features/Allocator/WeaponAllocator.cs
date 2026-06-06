@@ -68,21 +68,40 @@ public sealed class WeaponAllocator
         {
             if (!player.IsValid) return;
 
+            // GARDE PION : entre l'await DB ci-dessus et ce frame, le pion peut être mort
+            // ou en cours de respawn. RemoveWeapons / GiveNamedItem sur un pion mort ou
+            // invalide = crash natif du serveur (pas d'exception .NET rattrapable). On ne
+            // touche donc au pion que s'il est vivant ET valide à cet instant précis.
+            var pawn = player.PlayerPawn?.Value;
+            if (pawn == null || !pawn.IsValid || !player.PawnIsAlive)
+            {
+                CS2UltimodPlugin.Log?.LogWarning(
+                    "[Alloc] give SKIP (pion mort/invalide) pour {Player} rt={Rt}", player.PlayerName, roundType);
+                return;
+            }
+
+            // DIAG TEMPORAIRE (traque crash natif début de round) : chaque étape native est
+            // loggée AVANT son exécution. Si le serveur crashe pendant le don d'armes, la
+            // dernière ligne "[Alloc-step]" du log nomme l'appel exact qui a tué le process.
+            // À retirer une fois la cause confirmée.
+            void Step(string s) => CS2UltimodPlugin.Log?.LogInformation("[Alloc-step] {Player}: {S}", player.PlayerName, s);
+
             // Tirage des carriers AWP : idempotent par round, sur main thread (NextFrame
             // sérialisés → pas de race entre les allocations parallèles du round).
-            EnsureCarriersForCurrentRound();
+            Step("ensure-carriers"); EnsureCarriersForCurrentRound();
 
-            player.RemoveWeapons();
+            Step("remove-weapons"); player.RemoveWeapons();
 
             // Pistol: kevlar only (no helmet). HalfBuy/FullBuy: full armor.
+            Step("give-armor");
             player.GiveNamedItem(roundType == RoundType.Pistol
                 ? CsItem.Kevlar
                 : CsItem.KevlarHelmet);
 
             if (team == CsTeam.CounterTerrorist)
             {
-                var pawn = player.PlayerPawn.Value;
-                if (pawn?.ItemServices != null)
+                Step("set-defuser");
+                if (pawn.ItemServices != null)
                     new CCSPlayer_ItemServices(pawn.ItemServices.Handle).HasDefuser = true;
             }
 
@@ -110,16 +129,19 @@ public sealed class WeaponAllocator
                         player.PlayerName, team, player.SteamID, string.Join(",", prefs.Keys));
                 }
 
-                player.GiveNamedItem(primary);
+                Step($"give-primary {primary}"); player.GiveNamedItem(primary);
             }
 
             var secondary = prefs.TryGetValue("Secondary", out var secPref) ? secPref : DefaultSecondary[team];
-            player.GiveNamedItem(secondary);
+            Step($"give-secondary {secondary}"); player.GiveNamedItem(secondary);
 
-            player.GiveNamedItem(CsItem.Knife);
+            Step("give-knife"); player.GiveNamedItem(CsItem.Knife);
 
             foreach (var nade in GetNadesForRound(team, roundType))
-                player.GiveNamedItem(nade);
+            {
+                Step($"give-nade {nade}"); player.GiveNamedItem(nade);
+            }
+            Step("done");
         });
     }
 

@@ -1,6 +1,7 @@
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Entities.Constants;
+using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
 using CS2Ultimod.Core;
@@ -99,19 +100,25 @@ public static class SuperheroesModule
         _radarTimer = new CounterStrikeSharp.API.Modules.Timers.Timer(0.4f, RadarTick, TimerFlags.REPEAT);
         // Regen tick (1s)
         _regenTimer = new CounterStrikeSharp.API.Modules.Timers.Timer(1.0f, RegenTick, TimerFlags.REPEAT);
-        // Fast tick (0.05s = ~3 server ticks) : maintient les effets que CS2 reset
-        // silencieusement à chaque tick (MOVETYPE_NONE pour Hypnose, VelocityModifier
-        // pour les héros speed qui sinon perdent leur buff en jump).
+        // Fast tick (0.05s = ~3 server ticks) : freeze Hypnose (MOVETYPE_NONE) + spotting
+        // radar haute fréquence (re-spot 20×/s pour un blip qui suit le mouvement en temps réel).
         _freezeTimer = new CounterStrikeSharp.API.Modules.Timers.Timer(0.05f, FastTick, TimerFlags.REPEAT);
 
-        // Bunnyhop : auto-jump par tick. Contrairement aux autres effets persistants, il
-        // DOIT tourner à chaque tick (et non au FastTick 0.05s ≈ 3 ticks) pour attraper le
-        // tick exact d'atterrissage et enchaîner les sauts sans perte de vitesse.
-        CS2UltimodPlugin.Instance.RegisterListener<Listeners.OnTick>(BhopTick);
+        // OnTick (chaque tick = 64Hz) : effets que CS2 reset à CHAQUE tick et qui exigent
+        // donc une réécriture par tick, pas toutes les 0.05s :
+        //  - VelocityModifier (héros speed) : le moteur le remet à 1.0 au saut ; réécrire au
+        //    FastTick laissait un trou de ~3 ticks → buff perdu en l'air. Per-tick = buff continu.
+        //  - Bunnyhop : attraper le tick exact d'atterrissage pour enchaîner sans perte de vitesse.
+        CS2UltimodPlugin.Instance.RegisterListener<Listeners.OnTick>(OnEngineTick);
 
         // Xray (voir à travers les murs) : système event-driven séparé,
         // basé sur prop_dynamic clones + CheckTransmit per-viewer.
         XrayGlow.Init();
+
+        // Pré-résout (et logue au boot) quelle classe expose m_entitySpottedState comme
+        // champ networké pour le radar. Diagnostic permanent : si "AUCUN", le radar ne se
+        // propagera pas et il faudra une autre approche.
+        Server.NextFrame(() => ResolveSpottedField());
     }
 
     private static bool IsModeActive() => CS2UltimodPlugin.ModeManager.IsActive(
@@ -452,10 +459,17 @@ public static class SuperheroesModule
 
     // Combine freeze (Hypnose) + speed enforcement (SpeedMul/Spy). Mêmes contraintes
     // tick CS2 : on doit réécrire à haute fréquence sinon l'engine reset.
-    private static void FastTick()
+    // Appelé à chaque tick (64Hz) : effets reset par CS2 chaque tick.
+    private static void OnEngineTick()
     {
         SpeedEnforceTick();
+        BhopTick();
+    }
+
+    private static void FastTick()
+    {
         FreezeTick();
+        SpotEnemiesForRadar();
     }
 
     private static void SpeedEnforceTick()
@@ -922,11 +936,52 @@ public static class SuperheroesModule
             StripNonKnife(p);
         }
 
-        // Tier-list des équipes ennemies à spotter (selon les radar-buffés vivants).
-        // Xray est géré séparément par XrayGlow (event-driven + CheckTransmit listener).
-        bool tNeedsSpotting = false; // au moins un CT a Radar → on spot les T sur radar
-        bool ctNeedsSpotting = false;
+        // Cvar `ammo_grenade_limit_default 2` permet à TOUT le monde de porter 2× chaque
+        // grenade. On enforce manuellement la limite vanilla (1× HE/smoke/molly) sur les
+        // non-buffés ; les buffés (Boum/Fumeur/Pyromane) gardent leurs 2. Flash exempt
+        // car vanilla autorise déjà 2.
+        EnforceGrenadeLimits();
 
+        // Le spotting radar est désormais fait dans SpotEnemiesForRadar(), appelé au
+        // FastTick (0.05s) pour un suivi temps réel — pas ici à 0.4s (rendu saccadé).
+    }
+
+    // ── Radar : spotting des ennemis sur la minimap ───────────────────────────
+
+    // m_entitySpottedState n'est PAS networké sous "CCSPlayerPawnBase" : SetStateChanged y
+    // faisait un no-op (le warning "is not networked" prouvait que rien ne se propageait aux
+    // clients — d'où un radar qui ne bougeait qu'aux spots naturels du jeu). On résout une
+    // fois la classe où le champ est réellement networké (CCSPlayerPawn d'abord) via
+    // Schema.IsSchemaFieldNetworked, et on log le résultat. Si aucune n'est networkée, on
+    // n'appelle pas SetStateChanged (inutile) mais on log pour le savoir.
+    private static bool _spottedNetResolved;
+    private static (string Cls, string Field)? _spottedNet;
+    private static (string Cls, string Field)? ResolveSpottedField()
+    {
+        if (_spottedNetResolved) return _spottedNet;
+        _spottedNetResolved = true;
+        foreach (var cls in new[] { "CCSPlayerPawn", "CCSPlayerPawnBase" })
+        {
+            if (Schema.IsSchemaFieldNetworked(cls, "m_entitySpottedState"))
+            {
+                _spottedNet = (cls, "m_entitySpottedState");
+                break;
+            }
+        }
+        CS2UltimodPlugin.Log?.LogInformation("[SH] radar : champ spotted networké = {Field}",
+            _spottedNet is { } n ? n.Cls : "AUCUN (le radar ne se propagera pas)");
+        return _spottedNet;
+    }
+
+    // Spotte en continu les ennemis des équipes ayant un porteur Radar vivant. Appelé à
+    // 0.05s (FastTick) : re-spotter à haute fréquence fait suivre le blip en temps réel,
+    // car un spot ne met à jour la position de l'ennemi qu'à l'instant où il est (re)posé.
+    private static void SpotEnemiesForRadar()
+    {
+        if (!IsModeActive()) return;
+
+        bool tNeedsSpotting = false;   // un CT a Radar → on spotte les T
+        bool ctNeedsSpotting = false;  // un T a Radar → on spotte les CT
         foreach (var (sid, hero) in _activeHero)
         {
             if (hero.Effect != HeroEffect.Radar) continue;
@@ -935,15 +990,9 @@ public static class SuperheroesModule
             if (p.TeamNum == (byte)CsTeam.CounterTerrorist) tNeedsSpotting = true;
             else if (p.TeamNum == (byte)CsTeam.Terrorist) ctNeedsSpotting = true;
         }
+        if (!tNeedsSpotting && !ctNeedsSpotting) return;
 
-        // Cvar `ammo_grenade_limit_default 2` permet à TOUT le monde de porter 2× chaque
-        // grenade. On enforce manuellement la limite vanilla (1× HE/smoke/molly) sur les
-        // non-buffés ; les buffés (Boum/Fumeur/Pyromane) gardent leurs 2. Flash exempt
-        // car vanilla autorise déjà 2.
-        EnforceGrenadeLimits();
-
-if (!tNeedsSpotting && !ctNeedsSpotting) return;
-
+        var net = ResolveSpottedField();
         foreach (var enemy in Utilities.GetPlayers())
         {
             if (!enemy.IsValid || !enemy.PawnIsAlive) continue;
@@ -958,15 +1007,13 @@ if (!tNeedsSpotting && !ctNeedsSpotting) return;
 
             try
             {
-                spotted.SpottedByMask[0] = uint.MaxValue;
+                spotted.SpottedByMask[0] = uint.MaxValue;   // vu par tous les slots → sur le radar
                 spotted.SpottedByMask[1] = uint.MaxValue;
-                // Schema path correct pour CS2 : CCSPlayerPawnBase::m_entitySpottedState
-                // (et non CBaseEntity::m_bSpottedByMask qui ne propage pas).
-                Utilities.SetStateChanged(pawn, "CCSPlayerPawnBase", "m_entitySpottedState");
+                if (net is { } f) Utilities.SetStateChanged(pawn, f.Cls, f.Field);
             }
             catch (Exception ex)
             {
-                CS2UltimodPlugin.Log?.LogWarning(ex, "[SH] RadarTick spot failure");
+                CS2UltimodPlugin.Log?.LogWarning(ex, "[SH] radar spot failure");
             }
         }
     }

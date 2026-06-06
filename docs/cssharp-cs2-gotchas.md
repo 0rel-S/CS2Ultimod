@@ -49,5 +49,32 @@ if (!Schema.IsSchemaFieldNetworked(className, fieldName)) {
 - `SetScale` per-entity : `pawn.AcceptInput("SetScale", null, null, "1.4")`. NE PAS utiliser `SkeletonInstance.Scale` (partagé entre pions du même model resource → scale tout le monde).
 - CS2 reset silencieusement `m_MoveType` et `m_flVelocityModifier` chaque tick après certains events → réécrire à haute fréquence si on veut que l'effet tienne.
 
+## Grenades natives (smoke/HE/molotov/decoy) : signatures mémoire fragiles  [2026-06-07]
+
+- **Pourquoi du natif** : `CreateEntityByName("smokegrenade_projectile")` + `DispatchSpawn` crée
+  l'entité mais le smoke ne « fume » pas (l'effet ne se déclenche pas). Il faut appeler la
+  fonction moteur `CreateSmokeGrenadeProjectile` via une **signature mémoire**
+  (`MemoryFunctionWithReturn`). Idem HE / molotov / decoy. Le flash, lui, marche via
+  `CreateEntityByName("flashbang_projectile")` + DispatchSpawn.
+- **`NativeException: Invalid function pointer` à l'Invoke** = la signature d'octets ne matche
+  plus la fonction dans le binaire CS2 (une maj a recompilé la fonction → octets/registres
+  changés). Le scan échoue → pointeur invalide → throw à chaque lancer de smoke. ⚠ Un appel
+  natif sur pointeur invalide peut aussi faire crasher dur le serveur, pas juste throw.
+- **Cas CS2Ultimod** : `SmokeProjectile` (src/Modes/Execute/Models/Grenade.cs) a été copié du
+  fork **ancien** `bazookaCodes/cs2-executes-plugin`. Sig Linux périmée :
+  `55 4C 89 C1 48 89 E5 41 57 49 89 FF 41 56 45 89 CE`.
+- **Sig Linux à jour** (repo maintenu `zwolof/cs2-executes`, master, vérifié juin 2026) :
+  `55 4C 89 C1 48 89 E5 41 57 45 89 CF 41 56 49 89 FE`. Sig **Windows identique** dans les deux
+  (inchangée). Convention maintenue : `<IntPtr,IntPtr,IntPtr,IntPtr,IntPtr,int,int,
+  CSmokeGrenadeProjectile>`, invoke `(pos, angle, vel, vel, IntPtr.Zero, 45, (int)team)`. Les
+  args valeur (45, team) sont équivalents à la version actuelle → **seuls les octets de la sig
+  comptent** pour corriger l'Invalid function pointer.
+- **Robustesse** : une sig en dur casse à CHAQUE patch CS2. Durable = resynchroniser les sigs
+  depuis `zwolof/cs2-executes` après chaque maj, ou les charger depuis un **gamedata externe**
+  communautaire (cf. `references/cs2-retakes-allocator` `CustomGameData`) plutôt qu'en dur. Les
+  sigs HE/molotov/decoy à jour sont dans le même `references/cs2-executes/Memory.cs`.
+- ⚠ Vérification : la sig ne se valide qu'en jeu (lancer un smoke en mode Execute, vérifier
+  l'absence d'`Invalid function pointer` + un nuage qui apparaît). Aucun test RCON possible.
+
 ---
 _Voir aussi `INTERFACES.md` (API interne du projet) et le code `src/Features/Superheroes/`._

@@ -88,8 +88,14 @@ internal static class SmokeProjectile
     private static readonly string WindowsSig =
         "48 8B C4 48 89 58 ? 48 89 68 ? 48 89 70 ? 57 41 56 41 57 48 81 EC ? ? ? ? 48 8B B4 24 ? ? ? ? 4D 8B F8";
 
+    // Sig resynchronisée depuis le repo maintenu zwolof/cs2-executes (master, vérifié juin 2026).
+    // L'ancienne sig (copiée du fork périmé bazookaCodes/cs2-executes-plugin :
+    // "55 4C 89 C1 48 89 E5 41 57 49 89 FF 41 56 45 89 CE") ne matchait plus la fonction
+    // recompilée par une maj CS2 → MemoryFunctionWithReturn résolvait un pointeur invalide
+    // → "NativeException: Invalid function pointer" à chaque lancer de smoke en Execute.
+    // ⚠ Une sig en dur recasse à chaque patch CS2 : resynchroniser depuis zwolof/cs2-executes.
     private static readonly string LinuxSig =
-        "55 4C 89 C1 48 89 E5 41 57 49 89 FF 41 56 45 89 CE";
+        "55 4C 89 C1 48 89 E5 41 57 45 89 CF 41 56 49 89 FE";
 
     private static readonly string Sig =
         RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? LinuxSig : WindowsSig;

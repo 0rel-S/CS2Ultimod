@@ -69,10 +69,19 @@ if (!Schema.IsSchemaFieldNetworked(className, fieldName)) {
   CSmokeGrenadeProjectile>`, invoke `(pos, angle, vel, vel, IntPtr.Zero, 45, (int)team)`. Les
   args valeur (45, team) sont équivalents à la version actuelle → **seuls les octets de la sig
   comptent** pour corriger l'Invalid function pointer.
-- **Robustesse** : une sig en dur casse à CHAQUE patch CS2. Durable = resynchroniser les sigs
-  depuis `zwolof/cs2-executes` après chaque maj, ou les charger depuis un **gamedata externe**
-  communautaire (cf. `references/cs2-retakes-allocator` `CustomGameData`) plutôt qu'en dur. Les
-  sigs HE/molotov/decoy à jour sont dans le même `references/cs2-executes/Memory.cs`.
+- **Robustesse — vérifié le 2026-06-07, important** : il n'existe **PAS** de gamedata
+  communautaire clé-en-main pour les grenades. Le `gamedata.json` **core** de CSSharp (39
+  entrées : GiveNamedItem, CreateEntityByName, DispatchSpawn…) ne contient **aucune** sig de
+  création de grenade ; le tracker `ianlucas/cs2-signatures` (santé des sigs après patch) ne les
+  couvre pas non plus. Ces sigs ne vivent que **dans les plugins** (en dur).
+  - **Stratégie durable réaliste** : resynchroniser depuis le plugin maintenu
+    `zwolof/cs2-executes` (`Memory.cs`) après chaque update CS2 — c'est la source de facto. Les
+    sigs HE/molotov/decoy à jour y sont aussi.
+  - **`ianlucas/cs2-signatures`** sert à savoir *quand* les sigs core cassent après un patch
+    (pas les grenades).
+  - Externaliser dans un gamedata local au plugin (cf. `references/cs2-retakes-allocator`
+    `CustomGameData`) évite de **recompiler** (éditer un JSON au lieu du code), mais il faut
+    quand même y coller les octets à jour sourcés depuis zwolof. Ça ne supprime pas le resync.
 - ⚠ Vérification : la sig ne se valide qu'en jeu (lancer un smoke en mode Execute, vérifier
   l'absence d'`Invalid function pointer` + un nuage qui apparaît). Aucun test RCON possible.
 
